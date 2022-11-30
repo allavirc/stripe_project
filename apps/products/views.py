@@ -1,11 +1,15 @@
 import json
 import stripe
+
+# Django
 from django.core.mail import send_mail
 from django.shortcuts import render
 from django.views.generic import TemplateView
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 from django.views import View
+
+# Apps
 from products.models import Item
 from settings import base
 
@@ -27,11 +31,11 @@ def product(request):
         }
     )
 
-class SuccessView(TemplateView):
+class SuccessPageView(TemplateView):
     template_name = "success.html"
 
 
-class CancelView(TemplateView):
+class CancelPageView(TemplateView):
     template_name = "cancel.html"
 
 
@@ -44,7 +48,6 @@ class ProductBuyPageView(TemplateView):
             print(id)
             product = Item.objects.get(id=id)
 
-            # product = Item.objects.get(name="Black Afgano")
         except Exception as e:
             print(e)
         context = super(ProductBuyPageView, self).get_context_data(**kwargs)
@@ -69,7 +72,6 @@ class CreateCheckoutSessionView(View):
                         'unit_amount': product.price,
                         'product_data': {
                             'name': product.name,
-                            # 'images': ['https://i.imgur.com/EHyR2nP.png'],
                         },
                     },
                     'quantity': 1,
@@ -98,13 +100,14 @@ def stripe_webhook(request):
             payload, sig_header, base.STRIPE_WEBHOOK_SECRET
         )
     except ValueError as e:
-        # Invalid payload
+        # Некорректный платеж
         return HttpResponse(status=400)
     except stripe.error.SignatureVerificationError as e:
-        # Invalid signature
+        # Некорректная подпись
         return HttpResponse(status=400)
 
-    # Handle the checkout.session.completed event
+
+    # Обработка события checkout.session.completed
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
 
@@ -120,7 +123,7 @@ def stripe_webhook(request):
             from_email="matt@test.com"
         )
 
-        # TODO - decide whether you want to send the file or the URL
+        # TODO - при отправке ссылки на продукт
     
     elif event["type"] == "payment_intent.succeeded":
         intent = event['data']['object']
@@ -134,22 +137,21 @@ def stripe_webhook(request):
         product = Item.objects.get(id=product_id)
 
         send_mail(
-            subject="Here is your product",
-            message=f"Thanks for your purchase. Here is the product you ordered. The URL is {product.url}",
+            subject="Hello! You bought this perfume in our store!",
+            message=f"Thanks for your purchase. Here is the product you ordered. The name is {product.name}",
             recipient_list=[customer_email],
-            from_email="matt@test.com"
+            from_email="allavirc2@gmail.com"
         )
 
     return HttpResponse(status=200)
 
 
 class StripeIntentView(View):
-    def post(self, request, *args, **kwargs):
+    def post(self, request, id, *args, **kwargs):
         try:
             req_json = json.loads(request.body)
             customer = stripe.Customer.create(email=req_json['email'])
-            product_id = self.kwargs["pk"]
-            product = Item.objects.get(id=product_id)
+            product = Item.objects.get(id=id)
             intent = stripe.PaymentIntent.create(
                 amount=product.price,
                 currency='usd',
@@ -162,4 +164,4 @@ class StripeIntentView(View):
                 'clientSecret': intent['client_secret']
             })
         except Exception as e:
-            return JsonResponse({ 'error': str(e)})
+            return JsonResponse({'error': str(e)})

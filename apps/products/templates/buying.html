@@ -16,6 +16,7 @@ body {
   align-content: center;
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
 }
 form {
   width: 30vw;
@@ -68,7 +69,7 @@ input {
 }
 /* Buttons and links */
 button {
-  background: #5469d4;
+  background: #b50404;
   color: #ffffff;
   font-family: Arial, sans-serif;
   border-radius: 0 0 4px 4px;
@@ -162,7 +163,12 @@ button:disabled {
     width: 80vw;
   }
 }
-
+.description{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 20px 0px 20px 0px;
+}
     </style>
 </head>
 <body>
@@ -173,8 +179,12 @@ button:disabled {
             alt="The cover of Stubborn Attachments"
     /> {% endcomment %}
         <div class="description">
-            <h3>{{ product.name }}</h3>
-            <h5>${{ product.price }}</h5>
+            <div>
+                <h3>{{ product.name }}</h3>
+                <h5>${{ product.price }}</h5>
+            </div>
+
+            <img style="width: 200px;" src="{{ product.img.url }}" alt="The cover of Stubborn Attachments"/>
         </div>
     </div>
     <button type="button" id="checkout-button">Checkout</button>
